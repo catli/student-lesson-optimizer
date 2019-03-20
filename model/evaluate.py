@@ -35,7 +35,9 @@ def evaluate_loss(model, val_data, loader, val_keys, content_dim, threshold,
         # convert token data to matrix
         # need to convert batch_x from tensor flow object to numpy array
         # before converting to matrix
-        input_padded, label_padded, seq_lens = convert_token_to_matrix(
+
+        # [TODO SLO]:  add label_mask
+        input_padded, label_padded, label_mask, seq_lens = convert_token_to_matrix(
             batch_x[0].numpy(), val_data, val_keys, content_dim, include_correct)
         # Variable, used to set tensor, but no longer necessary
         # Autograd automatically supports tensor with requires_grade=True
@@ -48,9 +50,11 @@ def evaluate_loss(model, val_data, loader, val_keys, content_dim, threshold,
         model.hidden = model.init_hidden()
         # is this equivalent to generating prediction
         # what is the label generated?
+
         # [TODO SLO]:
         #    (1) change prediction to perc
         #    (2) change the loss function to 
+        #    (3) add label_mask
         y_pred = model(padded_input, seq_lens)  # .cuda()
         loss = model.loss(y_pred, padded_label)  # .cuda()
         # append the loss after converting back to numpy object from tensor
@@ -59,6 +63,7 @@ def evaluate_loss(model, val_data, loader, val_keys, content_dim, threshold,
         #     (1) Update_max_prediction to find top growth skills
         #        find k number of skills where k is the number of
         #        skills actually worked on in next sessions
+        #     (2) incorporate label_mask
         threshold_output, correct_ones = find_max_predictions(
             y_pred, padded_label, threshold)  # .cuda()
         threshold_output, num_no_pred = mask_padded_errors(
@@ -75,6 +80,8 @@ def evaluate_loss(model, val_data, loader, val_keys, content_dim, threshold,
 
 
 def mask_padded_errors(threshold_output, seq_lens):
+    # [TODO SLO]: 
+    #     (1) move mask_padded_error to loss
     num_no_pred = 0
     for i, output in enumerate(threshold_output):
         # the full size of threshold

@@ -75,6 +75,7 @@ class GRU_MODEL(nn.Module):
     def loss(self, output, label):
         # use mean-square error loss function
         # tested cross-entropy, which did not work as well
+        
         # [TODO SLO]: mask the output where label = 0
         mse = nn.MSELoss()
         loss = mse(output, label)
