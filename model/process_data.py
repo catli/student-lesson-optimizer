@@ -27,58 +27,16 @@ def convert_token_to_matrix(batch_index, json_data, json_keys, content_num,
         num_sess.append(len(json_data[student_key].keys())-1)
     max_seq = np.max(num_sess) + 1
     seq_lens = num_sess
-    # [TODO SLO]: delete
-    # if include_correct:
 
     # [TODO SLO]: Update function
     input_padded, label_padded, label_mask = create_padded_matrix_with_correct(
         batch_index, json_data, json_keys, content_num, max_seq)
-
-    # [TODO SLO]: delete
-    # else:
-    #     input_padded, label_padded = create_padded_matrix(batch_index,
-    #         json_data, json_keys, content_num, max_seq)
 
     # assign the number of sessions as sequence length for each student
     # this will feed be used later to tell the model
     # which sessions are padded
     return input_padded, label_padded, label_mask, seq_lens
 
-
-# def create_padded_matrix(batch_index, json_data, json_keys, content_num,
-#                          max_seq, count_input = False):
-#     '''
-#         create an empty matrix for the padded input /output
-#         with size (num_session-1, content_num)
-#         both input/output vectors populated with binomials with 1 if interacted
-#         with content and 0 otherwise
-#     '''
-#     batchsize = len(batch_index)
-#     # placeholder for padded input and label
-#     input_padded = np.zeros((batchsize, int(max_seq), content_num), int)
-#     label_padded = np.zeros((batchsize, int(max_seq), content_num), int)
-#     # populate student_padded
-#     for stud_num, student_index in enumerate(batch_index):
-#         # return the key pairs (student_id, seq_len)
-#         # and the first item of pair as student id
-#         student_key = json_keys[student_index][0]
-#         sessions = sorted(json_data[student_key].keys())
-#         for sess_num, session in enumerate(sessions):
-#             content_items = json_data[student_key][session]
-#             for item_num, item in enumerate(content_items):
-#                 exercise_id = item[0]
-#                 is_correct = item[1]
-#                 label_padded[stud_num, sess_num, exercise_id-1] = 1
-#                 # decide whether to set input to count
-#                 if count_input:
-#                     input_padded[stud_num, sess_num, exercise_id-1]+= 1
-#                 else:
-#                     input_padded[stud_num, sess_num, exercise_id-1] = 1
-#     # take first n-1 sessions for input and last n-1 sessions for output
-#     input_padded = input_padded[:, :-1]
-#     # [NEXT TODO] add num_next
-#     label_padded = max_next_sessions(label_padded[:, 1:], 3)
-#     return input_padded, label_padded
 
 
 
