@@ -11,7 +11,7 @@ import torch
 import torch.nn as nn
 from process_data import split_train_and_test_data, convert_token_to_matrix, extract_content_map
 from torch.autograd import Variable
-from evaluate import evaluate_loss  # , evaluate_precision_and_recall
+from evaluate import evaluate_loss
 import torch.utils.data as Data
 import matplotlib.pyplot as plt
 import numpy as np
@@ -81,7 +81,7 @@ def train(model, optimizer, train_data, loader,
         # convert token data to matrix
         # need to convert batch_x from tensor flow object to numpy array
         # before converting to matrix
-        input_padded, label_padded, seq_lens = convert_token_to_matrix(
+        input_padded, label_padded, label_mask, seq_lens = convert_token_to_matrix(
             batch_x[0].numpy(), train_data, train_keys, content_dim, include_correct)
         # Variable, used to set tensor, but no longer necessary
         # Autograd automatically supports tensor with requires_grade=True

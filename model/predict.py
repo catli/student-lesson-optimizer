@@ -39,7 +39,9 @@ def predict_sessions(model, full_data, keys, content_dim, threshold, output_file
         # grab all the sessions for a student
         sessions = sorted(full_data[student].keys())
         # convert token data to matrix
-        input_padded, label_padded, seq_lens = convert_token_to_matrix(
+
+        # [TODO SLO]: do we need to incorporate label_mask
+        input_padded, label_padded, _ ,  seq_lens = convert_token_to_matrix(
             batch[0].numpy(), full_data, keys, content_dim, include_correct)
         padded_input = Variable(torch.Tensor(
             input_padded), requires_grad=False)  # .cuda()
