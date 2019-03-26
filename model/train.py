@@ -90,6 +90,8 @@ def train(model, optimizer, train_data, loader,
             input_padded), requires_grad=False)  # .cuda()
         padded_label = Variable(torch.Tensor(
             label_padded), requires_grad=False)  # .cuda()
+        padded_mask = Variable(torch.Tensor(
+            label_mask), requires_grad=False)  # .cuda()
 
         # clear gradients and hidden state
         optimizer.zero_grad()
@@ -97,7 +99,7 @@ def train(model, optimizer, train_data, loader,
         # is this equivalent to generating prediction
         # what is the label generated?
         y_pred = model(padded_input, seq_lens)  # .cuda()
-        loss = model.loss(y_pred, padded_label)  # .cuda()
+        loss = model.loss(y_pred, padded_label, padded_mask)  # .cuda()
         print('Epoch %s: The %s-th iteration: %s loss \n' %(
             str(epoch), str(step+1), str(loss.data[0].numpy())))
         loss.backward()

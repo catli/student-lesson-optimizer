@@ -72,11 +72,15 @@ class GRU_MODEL(nn.Module):
         output = sigmoid_out.view(self.batch_size, -1, self.output_dim)
         return output
 
-    def loss(self, output, label):
+    def loss(self, output, label, mask):
+        # create masking for output and label
+        # [TODO SLO]: test mask the output where label = 0
+        real_label1 = torch.nonzero(mask).view(-1)
+        mask_output = output[real_label1]
+        mask_label = label[real_label1]
+        # Calculate loss betw masked output and label
         # use mean-square error loss function
         # tested cross-entropy, which did not work as well
-        
-        # [TODO SLO]: mask the output where label = 0
         mse = nn.MSELoss()
-        loss = mse(output, label)
+        loss = mse(mask_output, mask_label)
         return loss

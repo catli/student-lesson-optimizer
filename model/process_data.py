@@ -5,16 +5,14 @@ import torch.nn.utils as utils
 import pdb
 
 
-def convert_token_to_matrix(batch_index, json_data, json_keys, content_num,
-                            include_correct = False):
+def convert_token_to_matrix(batch_index, json_data, json_keys, content_num):
     '''
         convert the token to a multi-hot vector
         from student session activity json_data
         convert this data in batch form
     '''
     # [TODO SLO]:
-    #    (1) remove include_correct = False option
-    #    (2) [Optional] change input so that each
+    #     [Optional] change input so that each
     #        skill worked on is fed in sequential order
 
     # number of students in the batch
@@ -28,7 +26,6 @@ def convert_token_to_matrix(batch_index, json_data, json_keys, content_num,
     max_seq = np.max(num_sess) + 1
     seq_lens = num_sess
 
-    # [TODO SLO]: Update function
     input_padded, label_padded, label_mask = create_padded_matrix_with_correct(
         batch_index, json_data, json_keys, content_num, max_seq)
 
@@ -61,7 +58,7 @@ def create_padded_matrix_with_correct(batch_index, json_data, json_keys,
     # placeholder for padded input and label
     input_padded = np.zeros((batchsize, int(max_seq), content_num), int)
     correct_padded = np.zeros((batchsize, int(max_seq), content_num), int)
-    label_padded = np.zeros((batchsize, int(max_seq), content_num), int)
+    label_mask_padded = np.zeros((batchsize, int(max_seq), content_num), int)
     # populate student_padded
     for stud_num, student_index in enumerate(batch_index):
         # return the key pairs (student_id, seq_len)
@@ -75,24 +72,17 @@ def create_padded_matrix_with_correct(batch_index, json_data, json_keys,
             for item_num, item in enumerate(content_items):
                 exercise_id = item[0]
                 is_correct = item[1]
-                label_padded[stud_num, sess_num, exercise_id-1] = 1
+                label_mask_padded[stud_num, sess_num, exercise_id-1] = 1
                 input_padded[stud_num, sess_num, exercise_id-1]+= 1
                 correct_padded[stud_num, sess_num, exercise_id-1]+= is_correct
     concat_input_padded, perc_correct_padded = concat_perc_correct(
         correct_padded, input_padded)
     # take first n-1 sessions for input and last n-1 sessions for output
     concat_input_padded = concat_input_padded[:, :-1]
-    # [TODO SLO]:
-    #    (1) generate label padded with perc correct
-    #    (2) generate label masking -  1 if worked on, 0 if no activity
-    # average output from num_next sessions
-
-    # label_padded = perc_correct for each skill
-    #            [ 0 0.2 0 2 ]
-    # label_mask = skills worked equal to 1, rest set to 0
-    #            [ 0  1  1 1 ]
-    label_padded, label_mask = max_next_sessions(perc_correct_padded, label_padded,
-        num_next = 3)
+    # generate the labels and mask by averaging over multiple sessions
+    # default set to no averaging (num_next = 1)
+    label_padded, label_mask = max_next_sessions(perc_correct_padded, label_mask_padded,
+        num_next = 1)
     return concat_input_padded, label_padded, label_mask
 
 
@@ -101,8 +91,6 @@ def concat_perc_correct(correct_padded, input_padded):
         calculate the perc correct for activtiies worked on
         and then concatenate with input matrix
     '''
-    # [TODO SLO]:
-    #    (1) generate perc correct
     # create denominator
     correct_denom = input_padded.copy()
     # set 0 to 1 for divisbility
@@ -116,26 +104,22 @@ def concat_perc_correct(correct_padded, input_padded):
 
 
 
-def max_next_sessions(correct_padded, label_padded, num_next):
+def max_next_sessions(perc_correct_padded, label_padded, num_next):
     '''
         For the next x sessions, create a new
-        output that finds the max in the num_next
-        sessions.
-        Only works if dim(correct_padded) = dim(label_padded)
+        output that returns the max of _num_next_ sessions.
+        Only works if dim(perc_correct_padded) = dim(label_padded)
     '''
-    # [TODO SLO]:
-    #    (1) generate label padded with perc correct
-    #    (2) generate label masking -  1 if worked on, 0 if no activity
-    correct_padded = correct_padded[:, 1:]
+    perc_correct_padded = perc_correct_padded[:, 1:]
     label_padded = label_padded[:, 1:]
     next_label_mask = label_padded.copy()
-    next_correct_padded = correct_padded.copy()
+    next_correct_padded = perc_correct_padded.copy()
     for b, _ in enumerate(label_padded):
         for i, _ in enumerate(label_padded[b]):
             next_label_mask[b, i, :] = np.max(
                 label_padded[b, i:(i+num_next), :], axis=0)
             next_correct_padded[b, i, :] = np.max(
-                correct_padded[b, i:(i+num_next), :], axis=0)
+                perc_correct_padded[b, i:(i+num_next), :], axis=0)
     return next_correct_padded, next_label_mask
 
 
