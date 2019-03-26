@@ -46,17 +46,16 @@ def evaluate_loss(model, val_data, loader, val_keys, content_dim, threshold,
             input_padded), requires_grad=False)  # .cuda()
         padded_label = Variable(torch.Tensor(
             label_padded), requires_grad=False)  # .cuda()
+        padded_mask = Variable(torch.Tensor(
+            label_mask), requires_grad=False)  # .cuda()
+
         # clear gradients and hidden state
         model.hidden = model.init_hidden()
         # is this equivalent to generating prediction
         # what is the label generated?
 
-        # [TODO SLO]:
-        #    (1) change prediction to perc
-        #    (2) change the loss function to 
-        #    (3) add label_mask
         y_pred = model(padded_input, seq_lens)  # .cuda()
-        loss = model.loss(y_pred, padded_label)  # .cuda()
+        loss = model.loss(y_pred, padded_label, padded_mask)  # .cuda()
         # append the loss after converting back to numpy object from tensor
         val_loss.append(loss.data.numpy())
         # [TODO SLO]: 
