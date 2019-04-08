@@ -50,7 +50,7 @@ def predict_sessions(model, full_data, keys, content_dim, threshold, output_file
         model.init_hidden()
         y_pred = model(padded_input, seq_lens)  # .cuda()
         threshold_output, correct_ones = find_max_predictions(
-            y_pred, padded_label, threshold)
+            y_pred, padded_label, input_padded, content_dim)
         writer_sample_output(output_writer, student, sessions, padded_input,
                                 threshold_output, padded_label, correct_ones,
                                 exercise_to_index_map, include_correct)
@@ -59,7 +59,7 @@ def predict_sessions(model, full_data, keys, content_dim, threshold, output_file
 
 
 
-def find_max_predictions(output, label, threshold):
+def find_max_predictions(output, label, input_padded, content_dim):
     '''
         compare the predicted list and the actual rate
         then generate the locaation of correct predictions
@@ -77,21 +77,34 @@ def find_max_predictions(output, label, threshold):
     # set the relative threshold output to zero
     rel_thresh_output = torch.zeros(output.shape)
     for stud, _ in enumerate(output):
+        # init total correct and total answer, sum up from input_padded
+        num_corrects = np.zeros(content_dim)
+        num_answers = np.zeros(content_dim)
         for sess, _ in enumerate(output[stud]):
-            # set the relative threshold to one if within 0.01
-            # of max likelihood, threshold greater than 0.05
-            rel_thresh =  max_val[stud, sess] - 0.09
-            if rel_thresh<0.05:
-                rel_thresh = 0.05
-            rel_thresh_output[stud, sess] = torch.Tensor((
-                output[stud, sess].detach().numpy() >=rel_thresh
-                ).astype(float))
-    abs_threshold_output = F.threshold(output, threshold, 0)
-    threshold_output = torch.max(rel_thresh_output, abs_threshold_output)
+            # add the number of correct answers and total answers
+            # from the previous session (in input padded)
+            num_answers += input_padded[stud, sess, content_dim:]
+            num_corrects += (input_padded[stud, sess, :content_dim]*
+                input_padded[stud, sess, content_dim:])
+            # number of predicted activity will match actual number completed
+            # assume that students will complete the same number of activities
+            # in this prediction scenario
+            k = np.sum(label[stud, sess]) # number of content completed
+            if k==0:
+                continue
+            else:
+                growth_vals = max_val[stud, sess] - np.divide(num_corrects, num_answers)
+                # pick the threshold for k-th highest growth threshold
+                rel_thresh =  sorted(growth_vals[stud, sess])[k] # threshold of content
+                # if the output greater growth threshold, set to 1
+                # otherwise, all other skills set to 0
+                rel_thresh_output[stud, sess] = torch.Tensor((
+                    growth_vals.detach().numpy() >=rel_thresh
+                    ).astype(float))
     # find the difference between label and prediction
     # where prediction is incorrect (label is one and
     # threshold output 0), then the difference would be 1
-    predict_diff = label - threshold_output
+    predict_diff = label - rel_thresh_output
     # set_correct_to_one = F.threshold(0.99, 0)
     incorrect_ones = F.threshold(predict_diff, 0.999, 0)
     correct_ones = label - incorrect_ones

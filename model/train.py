@@ -58,13 +58,13 @@ def train_and_evaluate(model, full_data, train_keys, val_keys,
         #        for now keep recall and precision
         #        but may want to reconsider
         eval_loss, total_predicted, total_label, total_correct, \
-            total_no_predicted, total_sessions = evaluate_loss(model, full_data,
+            total_sessions = evaluate_loss(model, full_data,
                 val_loader, val_keys, content_dim, threshold, include_correct)
         eval_loss_epoch.append(eval_loss)
         epoch_result = 'Epoch %d test: %d / %d  precision \
-                    and %d / %d  recall with %d / %d no prediction sess \n' % (
+                    and %d / %d  recall with %d label  \n' % (
             epoch, total_correct, total_predicted,
-            total_correct, total_label, total_no_predicted, total_sessions)
+            total_correct, total_label, total_sessions)
         result_writer.write(epoch_result)
         print(epoch_result)
     # plot loss
