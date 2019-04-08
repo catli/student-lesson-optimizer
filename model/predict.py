@@ -84,6 +84,7 @@ def find_max_predictions(output, label, input_padded, content_dim):
             # add the number of correct answers and total answers
             # from the previous session (in input padded)
             num_answers += input_padded[stud, sess, content_dim:]
+            # num correct  = perc_correct * num_answers
             num_corrects += (input_padded[stud, sess, :content_dim]*
                 input_padded[stud, sess, content_dim:])
             # number of predicted activity will match actual number completed
@@ -95,7 +96,7 @@ def find_max_predictions(output, label, input_padded, content_dim):
             else:
                 growth_vals = max_val[stud, sess] - np.divide(num_corrects, num_answers)
                 # pick the threshold for k-th highest growth threshold
-                rel_thresh =  sorted(growth_vals[stud, sess])[k] # threshold of content
+                rel_thresh =  sorted(growth_vals)[k] # threshold of content
                 # if the output greater growth threshold, set to 1
                 # otherwise, all other skills set to 0
                 rel_thresh_output[stud, sess] = torch.Tensor((
