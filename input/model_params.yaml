@@ -2,10 +2,10 @@ max_epoch: 20
 nb_lstm_units: 50
 nb_lstm_layers: 1
 batchsize: 20
-learning_rate: 0.001
+learning_rate: 0.02
 test_perc: 0.2
 threshold: 0.2
-data_name: 'AllDataNoEmbedThresh02'
+data_name: 'MaxGrowthObjective'
 include_correct: True
-exercise_filename: '~/sorted_data/khan_problem_token_all'
-content_index_filename: 'data/exercise_index_all'
+exercise_filename: '~/sorted_data/khan_problem_token_3only'
+content_index_filename: 'data/exercise_index_3only'
