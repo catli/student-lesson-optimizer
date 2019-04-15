@@ -75,9 +75,8 @@ class GRU_MODEL(nn.Module):
     def loss(self, output, label, mask):
         # create masking for output and label
         # [TODO SLO]: test mask the output where label = 0
-        real_label1 = torch.nonzero(mask).view(-1)
-        mask_output = output[real_label1]
-        mask_label = label[real_label1]
+        mask_output = output*mask
+        mask_label = label*mask
         # Calculate loss betw masked output and label
         # use mean-square error loss function
         # tested cross-entropy, which did not work as well
