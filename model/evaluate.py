@@ -93,13 +93,13 @@ def mask_padded_errors(threshold_output, seq_lens):
 
 def find_max_predictions(output, label, input_padded, content_dim):
     '''
-        compare the predicted list and the actual rate
-        then generate the locaation of correct predictions
-        allow for a relative threshold, so that if no
-        values above absolute threshold, still return
-        selection
+        for each session, select k matching content where k is
+        the number of content the student actual completed
+        the k matching content is based on predict score growth
+
+        once generated, compare the predicted and the actual content
+        and return location of correct predictions
     '''
-    # max_val contains the prediction data
     rel_thresh_output = torch.zeros(output.shape)
     for stud, _ in enumerate(output):
         # init total correct and total answer, sum up from input_padded
