@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.utils.data as Data
@@ -32,7 +33,60 @@ def test_train():
     print("PASS UNIT TEST")
 
 
+def test_train_split():
+    # make sure the training validiton split
+    # is working as expected
+    exercise_filename = 'data/fake_tokens'
+    content_index_filename = 'data/exercise_index_all'
+    train_keys, val_keys, full_data = split_train_and_test_data(
+        exercise_filename, content_index_filename, 0.2)
+    assert len(train_keys) == 4
+    assert len(val_keys) == 1
+    print("PASS TRAIN VALIDATION SPLIT")
+
+
+def test_convert_token_to_matrix():
+    # test a couple of things
+    # (1) number of student in batch match expected
+    # (2) the number of session for the first student match expected
+    # (2) the number of activities for the first session match expected
+    # (3) the perc correct match expected
+    exercise_filename = 'data/fake_tokens'
+    content_index_filename = 'data/exercise_index_all'
+    train_keys, val_keys, full_data = split_train_and_test_data(
+        exercise_filename, content_index_filename, 0)
+    exercise_to_index_map, content_dim = extract_content_map(
+        content_index_filename)
+
+    batch = np.array([0,1])
+    batch_train_keys = [key[0] for key in train_keys[0:2]]
+
+    input_padded, label_padded, label_mask, seq_lens = convert_token_to_matrix(
+            batch, full_data, train_keys, content_dim)
+
+    assert len(input_padded) == len(batch)
+    assert len(label_padded) == len(batch)
+    assert len(label_mask) == len(batch)
+    print("PASS BATCH NUM")
+
+    student_data = full_data[batch_train_keys[0]]
+    assert len(input_padded[0,:,:]) == len(student_data)-1
+    assert len(label_padded[0,:,:]) == len(student_data)-1
+    assert len(label_mask[0,:,:]) == len(student_data)-1
+    print("PASS SESS NUM")
+
+    student_data = full_data[batch_train_keys[0]]
+    first_sesh_skills = np.unique([x[0] for x in student_data['1']])
+    sec_sesh_skills = np.unique([x[0] for x in student_data['2']])
+    assert np.sum(input_padded[0,0,:content_dim]>0) == len(first_sesh_skills)
+    assert np.sum(label_padded[0,0,:]>0) == len(sec_sesh_skills)
+    assert np.sum(label_mask[0,0,:]) == len(sec_sesh_skills)
+    print("PASS SKILL NUM")
+
+
 
 if __name__ == '__main__':
     # set hyper parameters
+    test_train_split()
+    test_convert_token_to_matrix()
     test_train()
