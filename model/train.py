@@ -23,8 +23,8 @@ import yaml
 
 def train_and_evaluate(model, full_data, train_keys, val_keys,
                        optimizer, content_dim, threshold,
-                        max_epoch, file_affix, include_correct):
-# output_sample_filename, exercise_to_index_map, , perc_sample_print
+                        max_epoch, file_affix):
+    # output_sample_filename, exercise_to_index_map, , perc_sample_print
     result_writer = open(
         os.path.expanduser('~/sorted_data/output_%s' % file_affix), 'w')
     best_vali_loss = None  # set a large number for validation loss at first
@@ -50,19 +50,16 @@ def train_and_evaluate(model, full_data, train_keys, val_keys,
         epoch = count + 1
         print('EPOCH %s:' % str(epoch))
         train_loss = train(model, optimizer, full_data, train_loader,
-                           train_keys, epoch, content_dim, include_correct)
+                           train_keys, epoch, content_dim)
         training_loss_epoch.append(train_loss)
         print('The average loss of training set for the first %s epochs: %s ' %
               (str(epoch), str(training_loss_epoch)))
-        # [TODO SLO]: 
-        #        for now keep recall and precision
-        #        but may want to reconsider
         eval_loss, total_predicted, total_label, total_correct, \
             total_sessions = evaluate_loss(model, full_data,
-                val_loader, val_keys, content_dim, threshold, include_correct)
+                val_loader, val_keys, content_dim)
         eval_loss_epoch.append(eval_loss)
         epoch_result = 'Epoch %d test: %d / %d  precision \
-                    and %d / %d  recall with %d label  \n' % (
+                    and %d / %d  recall with %d sessions  \n' % (
             epoch, total_correct, total_predicted,
             total_correct, total_label, total_sessions)
         result_writer.write(epoch_result)
@@ -72,7 +69,7 @@ def train_and_evaluate(model, full_data, train_keys, val_keys,
 
 
 def train(model, optimizer, train_data, loader,
-          train_keys, epoch, content_dim, include_correct):
+          train_keys, epoch, content_dim):
     # set in training node
     model.train()
     train_loss = []
@@ -135,10 +132,7 @@ def run_train_and_evaluate(loaded_params):
     exercise_to_index_map, content_dim = extract_content_map(
         content_index_filename)
     # if include perc correct in the input, then double dimensions
-    if include_correct:
-        input_dim = content_dim*2
-    else:
-        input_dim = content_dim
+    input_dim = content_dim*2
 
     model = gru_model(input_dim=input_dim,
                       output_dim=content_dim,
@@ -148,7 +142,7 @@ def run_train_and_evaluate(loaded_params):
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     train_and_evaluate(model, full_data, train_keys, val_keys,
                        optimizer, content_dim, threshold, max_epoch,
-                       file_affix,include_correct)
+                       file_affix)
     torch.save(model.state_dict(), 'output/model_%s' % file_affix)
 
 
@@ -165,5 +159,4 @@ if __name__ == '__main__':
     threshold = loaded_params['threshold']
     data_name = loaded_params['data_name']
     # perc_sample_print = loaded_params['perc_sample_print']
-    include_correct = loaded_params['include_correct']
     run_train_and_evaluate(loaded_params)
