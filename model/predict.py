@@ -42,7 +42,7 @@ def predict_sessions(model, full_data, keys, content_dim, threshold, output_file
 
         # [TODO SLO]: do we need to incorporate label_mask
         input_padded, label_padded, _ ,  seq_lens = convert_token_to_matrix(
-            batch[0].numpy(), full_data, keys, content_dim, include_correct)
+            batch[0].numpy(), full_data, keys, content_dim)
         padded_input = Variable(torch.Tensor(
             input_padded), requires_grad=False)  # .cuda()
         padded_label = Variable(torch.Tensor(

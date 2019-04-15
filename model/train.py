@@ -82,7 +82,7 @@ def train(model, optimizer, train_data, loader,
         # need to convert batch_x from tensor flow object to numpy array
         # before converting to matrix
         input_padded, label_padded, label_mask, seq_lens = convert_token_to_matrix(
-            batch_x[0].numpy(), train_data, train_keys, content_dim, include_correct)
+            batch_x[0].numpy(), train_data, train_keys, content_dim)
         # Variable, used to set tensor, but no longer necessary
         # Autograd automatically supports tensor with requires_grade=True
         #  https://pytorch.org/docs/stable/autograd.html?highlight=autograd%20variable

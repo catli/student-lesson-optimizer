@@ -26,7 +26,7 @@ def test_train():
     loader = Data.DataLoader(dataset=torch_data_index,
                                        batch_size=1,
                                        drop_last=True)
-    train(model, optimizer, full_data, loader, train_keys, epoch = 1, 
+    train(model, optimizer, full_data, loader, train_keys, epoch = 1,
           content_dim = content_dim, include_correct = True)
     assert model, "UH OH"
     print("PASS UNIT TEST")
