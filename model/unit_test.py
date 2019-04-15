@@ -1,3 +1,4 @@
+# Unit test: run with pytest
 import numpy as np
 import torch
 import torch.nn as nn
@@ -5,10 +6,11 @@ import torch.utils.data as Data
 from gru import GRU_MODEL as gru_model
 from process_data import split_train_and_test_data, convert_token_to_matrix, extract_content_map
 from train import train
+from evaluate import evaluate_loss
 import pdb
 
 
-def test_train():
+def test_train_and_evaluate():
     exercise_filename = 'data/fake_tokens'
     content_index_filename = 'data/exercise_index_all'
     train_keys, val_keys, full_data = split_train_and_test_data(
@@ -28,7 +30,15 @@ def test_train():
                                        batch_size=1,
                                        drop_last=True)
     train(model, optimizer, full_data, loader, train_keys, epoch = 1,
-          content_dim = content_dim, include_correct = True)
+          content_dim = content_dim)
+    eval_loss, total_predicted, total_label, total_correct, \
+      total_sessions = evaluate_loss(model, full_data,
+          loader, train_keys, content_dim)
+    epoch_result = 'Epoch %d unit test: %d / %d  precision \
+                    and %d / %d  recall with %d sessions  \n' % (
+            1, total_correct, total_predicted,
+            total_correct, total_label, total_sessions)
+    print(epoch_result)
     assert model, "UH OH"
     print("PASS UNIT TEST")
 
@@ -85,8 +95,8 @@ def test_convert_token_to_matrix():
 
 
 
-if __name__ == '__main__':
-    # set hyper parameters
-    test_train_split()
-    test_convert_token_to_matrix()
-    test_train()
+# if __name__ == '__main__':
+#     # set hyper parameters
+#     test_train_split()
+#     test_convert_token_to_matrix()
+#     test_train_and_evaluate()
