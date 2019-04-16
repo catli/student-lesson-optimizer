@@ -57,7 +57,7 @@ def evaluate_loss(model, val_data, loader, val_keys, content_dim):
         # append the loss after converting back to numpy object from tensor
         val_loss.append(loss.data.numpy())
         threshold_output, correct_ones = find_max_predictions(
-            y_pred, padded_label, input_padded, content_dim)  # .cuda()
+            y_pred, label_mask, input_padded, content_dim)  # .cuda()
         total_predicted += len(torch.nonzero(threshold_output))
         total_label += len(torch.nonzero(padded_label))
         total_correct += len(torch.nonzero(correct_ones))

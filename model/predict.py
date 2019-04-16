@@ -8,7 +8,7 @@ import yaml
 import os
 import numpy as np
 from process_data import convert_token_to_matrix, split_train_and_test_data, extract_content_map
-from evaluate import  find_correct_predictions
+# from evaluate import  find_max_predictions
 from torch.autograd import Variable
 from gru import GRU_MODEL as gru_model
 import pdb
@@ -41,16 +41,17 @@ def predict_sessions(model, full_data, keys, content_dim, threshold, output_file
         # convert token data to matrix
 
         # [TODO SLO]: do we need to incorporate label_mask
-        input_padded, label_padded, _ ,  seq_lens = convert_token_to_matrix(
+        input_padded, label_padded, label_mask,  seq_lens = convert_token_to_matrix(
             batch[0].numpy(), full_data, keys, content_dim)
         padded_input = Variable(torch.Tensor(
             input_padded), requires_grad=False)  # .cuda()
         padded_label = Variable(torch.Tensor(
             label_padded), requires_grad=False)  # .cuda()
+        masked_label = torch.Tensor(label_mask)
         model.init_hidden()
         y_pred = model(padded_input, seq_lens)  # .cuda()
         threshold_output, correct_ones = find_max_predictions(
-            y_pred, padded_label, input_padded, content_dim)
+            y_pred, masked_label, input_padded, content_dim)
         writer_sample_output(output_writer, student, sessions, padded_input,
                                 threshold_output, padded_label, correct_ones,
                                 exercise_to_index_map, include_correct)
@@ -72,8 +73,6 @@ def find_max_predictions(output, label, input_padded, content_dim):
     #        to next state, create a running tally of the
     #        perc correct for each skill
 
-    # find the max prediction for each session
-    max_val = torch.max(output, dim=2)[0].detach().numpy()
     # set the relative threshold output to zero
     rel_thresh_output = torch.zeros(output.shape)
     for stud, _ in enumerate(output):
@@ -83,25 +82,28 @@ def find_max_predictions(output, label, input_padded, content_dim):
         for sess, _ in enumerate(output[stud]):
             # add the number of correct answers and total answers
             # from the previous session (in input padded)
-            num_answers += input_padded[stud, sess, content_dim:]
+            num_answers += input_padded[stud, sess, :content_dim]
             # num correct  = perc_correct * num_answers
             num_corrects += (input_padded[stud, sess, :content_dim]*
                 input_padded[stud, sess, content_dim:])
             # number of predicted activity will match actual number completed
             # assume that students will complete the same number of activities
             # in this prediction scenario
-            k = np.sum(label[stud, sess]) # number of content completed
+            k = torch.sum(label[stud, sess]>0) # number of content completed
             if k==0:
                 continue
             else:
-                growth_vals = max_val[stud, sess] - np.divide(num_corrects, num_answers)
+                # create the denominator from num answers
+                denom = num_answers.copy()
+                denom[denom==0] = 1
+                mastery = np.divide(num_corrects, denom)
+                growth_vals = output[stud, sess].detach().numpy() - mastery
                 # pick the threshold for k-th highest growth threshold
-                rel_thresh =  sorted(growth_vals)[k] # threshold of content
+                rel_thresh =  sorted(growth_vals)[-k] # threshold of content
                 # if the output greater growth threshold, set to 1
                 # otherwise, all other skills set to 0
-                rel_thresh_output[stud, sess] = torch.Tensor((
-                    growth_vals.detach().numpy() >=rel_thresh
-                    ).astype(float))
+                rel_thresh_output[stud, sess] = torch.tensor((
+                    growth_vals >=rel_thresh).astype('float'))
     # find the difference between label and prediction
     # where prediction is incorrect (label is one and
     # threshold output 0), then the difference would be 1
@@ -109,7 +111,7 @@ def find_max_predictions(output, label, input_padded, content_dim):
     # set_correct_to_one = F.threshold(0.99, 0)
     incorrect_ones = F.threshold(predict_diff, 0.999, 0)
     correct_ones = label - incorrect_ones
-    return threshold_output, correct_ones
+    return rel_thresh_output, correct_ones
 
 
 def writer_sample_output(output_writer, student, sessions, padded_input,
@@ -222,10 +224,7 @@ def run_inference():
     keys, _,  full_data, = split_train_and_test_data(exercise_filename,
         content_index_filename, test_perc=0)
     # run the gru model
-    if include_correct:
-        input_dim = content_dim*2
-    else:
-        input_dim = content_dim
+    input_dim = content_dim*2
 
     model = gru_model(input_dim=input_dim,
                       output_dim=content_dim,
