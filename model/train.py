@@ -122,9 +122,8 @@ def run_train_and_evaluate(loaded_params):
     #     loaded_params['output_sample_filename'])
     content_index_filename = loaded_params['content_index_filename']
     # creat ethe filename
-    file_affix = 'unit%slayer%sbsize%sthresh%s_%s' % (
+    file_affix = 'unit%slayer%sthresh%s_%s' % (
         str(nb_lstm_units), str(nb_lstm_layers),
-        str(batchsize).replace('.', ''),
         str(threshold).replace('.', ''), str(data_name) )
 
     train_keys, val_keys, full_data = split_train_and_test_data(

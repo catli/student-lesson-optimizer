@@ -47,11 +47,11 @@ def predict_sessions(model, full_data, keys, content_dim, threshold, output_file
             input_padded), requires_grad=False)  # .cuda()
         padded_label = Variable(torch.Tensor(
             label_padded), requires_grad=False)  # .cuda()
-        masked_label = torch.Tensor(label_mask)
+        padded_mask = torch.Tensor(label_mask)
         model.init_hidden()
         y_pred = model(padded_input, seq_lens)  # .cuda()
         threshold_output, correct_ones = find_max_predictions(
-            y_pred, masked_label, input_padded, content_dim, threshold)
+            y_pred, padded_mask, input_padded, content_dim, threshold)
         writer_sample_output(output_writer, student, sessions, padded_input,
                                 threshold_output, padded_label, correct_ones,
                                 exercise_to_index_map, include_correct)
