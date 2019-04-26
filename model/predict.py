@@ -51,7 +51,7 @@ def predict_sessions(model, full_data, keys, content_dim, threshold, output_file
         model.init_hidden()
         y_pred = model(padded_input, seq_lens)  # .cuda()
         threshold_output, correct_ones = find_max_predictions(
-            y_pred, masked_label, input_padded, content_dim)
+            y_pred, masked_label, input_padded, content_dim, threshold)
         writer_sample_output(output_writer, student, sessions, padded_input,
                                 threshold_output, padded_label, correct_ones,
                                 exercise_to_index_map, include_correct)
@@ -60,7 +60,7 @@ def predict_sessions(model, full_data, keys, content_dim, threshold, output_file
 
 
 
-def find_max_predictions(output, label, input_padded, content_dim):
+def find_max_predictions(output, label, input_padded, content_dim, threshold):
     '''
         compare the predicted list and the actual rate
         then generate the locaation of correct predictions
@@ -98,12 +98,15 @@ def find_max_predictions(output, label, input_padded, content_dim):
                 denom[denom==0] = 1
                 mastery = np.divide(num_corrects, denom)
                 growth_vals = output[stud, sess].detach().numpy() - mastery
+                # cap threshold to target only those in proximal learning
+                capped_growth_vals = growth_vals[growth_vals<=threshold]
                 # pick the threshold for k-th highest growth threshold
-                rel_thresh =  sorted(growth_vals)[-k] # threshold of content
+                rel_thresh =  sorted(capped_growth_vals)[-k] # threshold of content
                 # if the output greater growth threshold, set to 1
                 # otherwise, all other skills set to 0
-                rel_thresh_output[stud, sess] = torch.tensor((
-                    growth_vals >=rel_thresh).astype('float'))
+                rel_thresh_output[stud, sess] = torch.tensor(((
+                    growth_vals >=rel_thresh)*(growth_vals<threshold)
+                    ).astype('float'))
     # find the difference between label and prediction
     # where prediction is incorrect (label is one and
     # threshold output 0), then the difference would be 1

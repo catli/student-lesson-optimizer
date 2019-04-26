@@ -13,6 +13,7 @@ import pdb
 def test_train_and_evaluate():
     exercise_filename = 'data/fake_tokens'
     content_index_filename = 'data/exercise_index_all'
+    threshold = 0.9
     train_keys, val_keys, full_data = split_train_and_test_data(
         exercise_filename, content_index_filename, 0)
     exercise_to_index_map, content_dim = extract_content_map(
@@ -33,7 +34,7 @@ def test_train_and_evaluate():
           content_dim = content_dim)
     eval_loss, total_predicted, total_label, total_correct, \
       total_sessions = evaluate_loss(model, full_data,
-          loader, train_keys, content_dim)
+          loader, train_keys, content_dim, threshold)
     epoch_result = 'Epoch %d unit test: %d / %d  precision \
                     and %d / %d  recall with %d sessions  \n' % (
             1, total_correct, total_predicted,

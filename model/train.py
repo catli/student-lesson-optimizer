@@ -56,7 +56,7 @@ def train_and_evaluate(model, full_data, train_keys, val_keys,
               (str(epoch), str(training_loss_epoch)))
         eval_loss, total_predicted, total_label, total_correct, \
             total_sessions = evaluate_loss(model, full_data,
-                val_loader, val_keys, content_dim)
+                val_loader, val_keys, content_dim, evaluate_loss)
         eval_loss_epoch.append(eval_loss)
         epoch_result = 'Epoch %d test: %d / %d  precision \
                     and %d / %d  recall with %d sessions  \n' % (

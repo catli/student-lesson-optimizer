@@ -15,7 +15,7 @@ import pdb
 
 
 
-def evaluate_loss(model, val_data, loader, val_keys, content_dim):
+def evaluate_loss(model, val_data, loader, val_keys, content_dim, threshold):
     '''
       # output_sample_filename, epoch, exercise_to_index_map, 
       # perc_sample_print, ):
@@ -57,13 +57,13 @@ def evaluate_loss(model, val_data, loader, val_keys, content_dim):
         # append the loss after converting back to numpy object from tensor
         val_loss.append(loss.data.numpy())
         threshold_output, correct_ones = find_max_predictions(
-            y_pred, label_mask, input_padded, content_dim)  # .cuda()
+            y_pred, label_mask, input_padded, content_dim, threshold)  # .cuda()
         total_predicted += len(torch.nonzero(threshold_output))
         total_label += len(torch.nonzero(padded_label))
         total_correct += len(torch.nonzero(correct_ones))
         # total_no_predicted += num_no_pred
         total_sessions += np.sum(seq_lens)
-    
+
     average_loss = np.mean(val_loss)
     # of label=1 that were predicted accurately
     return average_loss, total_predicted, total_label, \
@@ -91,7 +91,7 @@ def mask_padded_errors(threshold_output, seq_lens):
 
 
 
-def find_max_predictions(output, label, input_padded, content_dim):
+def find_max_predictions(output, label, input_padded, content_dim, threshold):
     '''
         for each session, select k matching content where k is
         the number of content the student actual completed
@@ -124,12 +124,15 @@ def find_max_predictions(output, label, input_padded, content_dim):
                 denom[denom==0] = 1
                 mastery = np.divide(num_corrects, denom)
                 growth_vals = output[stud, sess].detach().numpy() - mastery
+                # cap threshold to target only those in proximal learning
+                capped_growth_vals = growth_vals[growth_vals<=threshold]
                 # pick the threshold for k-th highest growth threshold
-                rel_thresh =  sorted(growth_vals)[-k] # threshold of content
+                rel_thresh =  sorted(capped_growth_vals)[-k] # threshold of content
                 # if the output greater growth threshold, set to 1
                 # otherwise, all other skills set to 0
                 rel_thresh_output[stud, sess] = torch.tensor((
-                    growth_vals >=rel_thresh).astype('float'))
+                    (growth_vals >=rel_thresh)*(growth_vals<threshold)
+                    ).astype('float'))
     # find the difference between label and prediction
     # where prediction is incorrect (label is one and
     # threshold output 0), then the difference would be 1
